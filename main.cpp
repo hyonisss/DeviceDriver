@@ -39,6 +39,35 @@ TEST(DeviceDriver, ReadFailsWhenValuesDiffer)
     EXPECT_THROW({ driver.read(0xBB); }, std::runtime_error); // 또는 ReadFailException (정의한 경우)
 }
 
+TEST(DeviceDriver, WriteSuccess)
+{
+    FlashMock mock;
+    EXPECT_CALL(mock, read(0xAB))
+        .Times(1)
+        .WillOnce(Return(0xFF)); // 메모리가 비어 있음
+
+    EXPECT_CALL(mock, write(0xAB, 0x42))
+        .Times(1); // write가 정확히 한 번 호출되어야 함
+
+    DeviceDriver driver{&mock};
+    driver.write(0xAB, 0x42);
+}
+
+TEST(DeviceDriver, WriteFailsWhenNotErased)
+{
+    FlashMock mock;
+
+    EXPECT_CALL(mock, read(0xAB))
+        .Times(1)
+        .WillOnce(Return(0x00)); // 이미 값이 있음
+
+    // write는 호출되지 않아야 하므로 기대 설정 안 함
+
+    DeviceDriver driver{&mock};
+
+    EXPECT_THROW({ driver.write(0xAB, 0x42); }, std::runtime_error);
+}
+
 int main()
 {
     ::testing::InitGoogleMock();
